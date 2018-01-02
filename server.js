@@ -13,16 +13,16 @@ app.get('/',function(req, res){
 // Chatroom
 
 var users = []
-var connections = []
 var rooms = {
-  "111":{
+  "111": {
     "sockets":[]
   }
 }
 
 io.on('connection', function(socket){
   var addedUser = false
-
+  var isRoomExist = false
+  var roomId = ''
   // Chat message
   socket.on('new message', function(data){
     console.log('message:' + data)
@@ -32,18 +32,38 @@ io.on('connection', function(socket){
     })
   })
 
-  socket.on('add user', function(username){
-  // When connected to the room, send the socket to sockets array
-  // var index = rooms["111"]["sockets"].push(socket) - 1;
-    if (addedUser) return
+  socket.on('choose room', function(roomIdInput){
+    console.log(`The room id is ${roomIdInput}.`)
+    // Check if roomIdInput exist
+    if(typeof rooms[roomIdInput] !== "undefined") {
+      isRoomExist = true
+      roomId = roomIdInput
+    }
 
+    // If room doesn't exist, open a new room
+    else {
+      var newRoom = {
+        roomIdInput: {
+          "sockets": []
+        }
+      }
+    }
+  })
+
+  // TODO: Broadcast chat messages and room infos into its own room instead of
+  // the global server
+  socket.on('add user', function(username){
+    // If either current user added or the room doesn't exist, user cannot join
+    if (addedUser || !isRoomExist) return
+
+    // When connected to the room, send the socket to sockets array
     socket.username = username
-    rooms["111"]["sockets"].push(socket)
+    rooms[roomId]["sockets"].push(socket)
     addedUser = true
     console.log('Connection: %s sockets connected', rooms["111"]["sockets"].length)
     socket.broadcast.emit('room info', {
       username: socket.username,
-      numUsers: rooms["111"]["sockets"].length
+      numUsers: rooms[roomId]["sockets"].length
     })
   })
 
@@ -51,12 +71,12 @@ io.on('connection', function(socket){
   socket.on('disconnect', function(){
     // When a user disconnect, remove it from the sockets list
     if(addedUser) {
-      rooms["111"]["sockets"].splice(rooms["111"]["sockets"].indexOf(socket), 1)
+      rooms[roomId]["sockets"].splice(rooms["111"]["sockets"].indexOf(socket), 1)
       console.log('1 user disconnected, Connection: %s sockets connected', rooms["111"]["sockets"].length)
 
       socket.broadcast.emit('room info', {
         username: socket.username,
-        numUsers: rooms["111"]["sockets"].length
+        numUsers: rooms[roomId]["sockets"].length
     })
   }
   })
