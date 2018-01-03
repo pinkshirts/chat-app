@@ -22,48 +22,55 @@ var rooms = {
 io.on('connection', function(socket){
   var addedUser = false
   var isRoomExist = false
-  var roomId = ''
+
+  // handle room choosing and joining
+  socket.on('choose room', function(roomIdInput){
+    console.log(`The room id is ${roomIdInput}.`)
+    // Check if roomIdInput exist, if so, join that room
+    if(typeof rooms[roomIdInput] !== "undefined") {
+      isRoomExist = true
+      socket.room = roomIdInput
+      socket.join(roomIdInput)
+    }
+
+    // If room doesn't exist, open a new room.
+    else {
+      //TODO: question here, how to add a variable to object
+      // var newRoom = {
+      //   `${roomIdInput}`: {
+      //     "sockets": []
+      //   }
+      // }
+      rooms[roomIdInput] = {"sockets": []}
+      console.log(rooms)
+      isRoomExist = true
+      socket.room = roomIdInput
+      socket.join(roomIdInput)
+    }
+  })
+
   // Chat message
   socket.on('new message', function(data){
     console.log('message:' + data)
-    io.emit('new message', {
+    io.in(socket.room).emit('new message', {
       username: socket.username,
       message: data
     })
   })
 
-  socket.on('choose room', function(roomIdInput){
-    console.log(`The room id is ${roomIdInput}.`)
-    // Check if roomIdInput exist
-    if(typeof rooms[roomIdInput] !== "undefined") {
-      isRoomExist = true
-      roomId = roomIdInput
-    }
-
-    // If room doesn't exist, open a new room
-    else {
-      var newRoom = {
-        roomIdInput: {
-          "sockets": []
-        }
-      }
-    }
-  })
-
-  // TODO: Broadcast chat messages and room infos into its own room instead of
-  // the global server
+  // Add user to the room they choose
   socket.on('add user', function(username){
     // If either current user added or the room doesn't exist, user cannot join
     if (addedUser || !isRoomExist) return
 
     // When connected to the room, send the socket to sockets array
     socket.username = username
-    rooms[roomId]["sockets"].push(socket)
+    rooms[socket.room]["sockets"].push(socket)
     addedUser = true
-    console.log('Connection: %s sockets connected', rooms["111"]["sockets"].length)
-    socket.broadcast.emit('room info', {
+    console.log('Connection: %s sockets connected', rooms[socket.room]["sockets"].length)
+    socket.in(socket.room).broadcast.emit('room info', {
       username: socket.username,
-      numUsers: rooms[roomId]["sockets"].length
+      numUsers: rooms[socket.room]["sockets"].length
     })
   })
 
@@ -71,13 +78,13 @@ io.on('connection', function(socket){
   socket.on('disconnect', function(){
     // When a user disconnect, remove it from the sockets list
     if(addedUser) {
-      rooms[roomId]["sockets"].splice(rooms["111"]["sockets"].indexOf(socket), 1)
-      console.log('1 user disconnected, Connection: %s sockets connected', rooms["111"]["sockets"].length)
-
+      rooms[socket.room]["sockets"].splice(rooms["111"]["sockets"].indexOf(socket), 1)
+      console.log('1 user disconnected, Connection: %s sockets connected', rooms[socket.room]["sockets"].length)
       socket.broadcast.emit('room info', {
         username: socket.username,
-        numUsers: rooms[roomId]["sockets"].length
-    })
-  }
+        numUsers: rooms[socket.room]["sockets"].length
+      })
+      socket.leave(socket.room)
+    }
   })
 })

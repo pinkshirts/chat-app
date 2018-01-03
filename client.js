@@ -4,7 +4,7 @@ $(function(){
   // Choose the room user wants to join
   $('#roomIdForm').submit(function(e){
     e.preventDefault()
-    var roomId = $('#roomIdInput').val()
+    var roomIdInput = $('#roomIdInput').val()
     socket.emit('choose room', roomIdInput)
   })
 

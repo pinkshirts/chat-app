@@ -18,14 +18,15 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
+
     $(function(){
       var socket = io()
 
       // Choose the room user wants to join
       $('#roomIdForm').submit(function(e){
         e.preventDefault()
-        var roomId = $('#roomIdInput').val()
-        socket.emit('choose room', roomId)
+        var roomIdInput = $('#roomIdInput').val()
+        socket.emit('choose room', roomIdInput)
       })
 
       // Define a user name
